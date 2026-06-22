@@ -1,0 +1,16 @@
+# 多阶段构建 — 通用 Agent Dockerfile
+# 构建时传入 AGENT_NAME 参数：docker build --build-arg AGENT_NAME=knowledge_extractor -f Dockerfile.agent .
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# 安装共享包
+COPY _shared/ ./_shared/
+RUN pip install -e ./_shared/
+
+ARG AGENT_NAME
+COPY agents/${AGENT_NAME}/main.py ./agents/${AGENT_NAME}/main.py
+
+EXPOSE 8000
+
+CMD ["sh", "-c", "python agents/$AGENT_NAME/main.py"]

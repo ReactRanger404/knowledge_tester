@@ -1,0 +1,71 @@
+x-agent: &agent
+  env_file: .env
+  networks: [agent-net]
+
+services:
+  knowledge-extractor:
+    <<: *agent
+    build: knowledge-extractor
+    ports: ["8001:8000"]
+    environment: { LLM_MODEL_KP: "${LLM_MODEL_KP:-deepseek-v4-flash}" }
+
+  question-generator:
+    <<: *agent
+    build: question-generator
+    ports: ["8002:8000"]
+    environment: { LLM_MODEL_QG: "${LLM_MODEL_QG:-deepseek-v4-flash}" }
+
+  type-adapter:
+    <<: *agent
+    build: type-adapter
+    ports: ["8003:8000"]
+    environment: { LLM_MODEL_TA: "${LLM_MODEL_TA:-deepseek-v4-flash}" }
+
+  quality-reviewer:
+    <<: *agent
+    build: quality-reviewer
+    ports: ["8004:8000"]
+    environment: { LLM_MODEL_QR: "${LLM_MODEL_QR:-deepseek-v4-flash}" }
+
+  exam-composer:
+    <<: *agent
+    build: exam-composer
+    ports: ["8005:8000"]
+
+  grader:
+    <<: *agent
+    build: grader
+    ports: ["8006:8000"]
+    environment: { LLM_MODEL_GR: "${LLM_MODEL_GR:-deepseek-v4-flash}" }
+
+  error-analyzer:
+    <<: *agent
+    build: error-analyzer
+    ports: ["8007:8000"]
+    environment: { LLM_MODEL_EA: "${LLM_MODEL_EA:-deepseek-v4-flash}" }
+
+  orchestrator:
+    build: orchestrator
+    ports: ["8000:8000"]
+    env_file: .env
+    environment:
+      DOCKER: "1"
+      AGENT_KP: http://knowledge-extractor:8000
+      AGENT_QG: http://question-generator:8000
+      AGENT_TA: http://type-adapter:8000
+      AGENT_QR: http://quality-reviewer:8000
+      AGENT_EC: http://exam-composer:8000
+      AGENT_GR: http://grader:8000
+      AGENT_EA: http://error-analyzer:8000
+    depends_on:
+      - knowledge-extractor
+      - question-generator
+      - type-adapter
+      - quality-reviewer
+      - exam-composer
+      - grader
+      - error-analyzer
+    networks: [agent-net]
+
+networks:
+  agent-net:
