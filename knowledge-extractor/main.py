@@ -6,7 +6,10 @@ from models import KnowledgeExtractionResult
 
 SYSTEM = """你是一个专业的知识点提取专家。
 从资料中提取可出题的知识点原子，每个知识点对应一道题。
-标注重要度 0~1。"""
+标注重要度 0~1。
+
+请严格返回以下 JSON 格式：
+{"knowledge_points": [{"concept": "知识点名", "importance": 0.8, "keywords": ["关键词"]}]}"""
 
 app = FastAPI(title="Knowledge Extractor")
 

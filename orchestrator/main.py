@@ -97,25 +97,19 @@ async def list_kb():
     """列出知识库所有教材（含索引信息）。"""
     store = get_store()
     docs = await store.get_documents()
-    # 补充文件信息
     for d in docs:
-        meta_path = os.path.join(KB_DIR, d["name"], "meta.json")
-        if os.path.isfile(meta_path):
-            with open(meta_path, "r", encoding="utf-8") as f:
-                meta = json.load(f)
-                d.update(meta)
-        else:
-            d["char_count"] = 0
+        d["char_count"] = await store.get_char_count(d["name"])
     return docs
 
 @app.get("/api/kb/{name}")
 async def get_kb(name: str, preview: bool = False):
-    """获取知识库内容（从向量库检索）。"""
+    """获取知识库全部内容。"""
     store = get_store()
-    text = await store.get_text_for_exam(name)
+    text = await store.get_full_text(name) if not preview else await store.get_text_for_exam(name)
     if not text:
         return {"error": f"知识库「{name}」未索引"}
-    return {"name": name, "char_count": len(text), "text": text[:2000] if preview else text}
+    char_count = await store.get_char_count(name)
+    return {"name": name, "char_count": char_count, "text": text[:2000] if preview else text}
 
 @app.get("/api/kb/{name}/chapters")
 async def kb_chapters(name: str):
