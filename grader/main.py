@@ -12,6 +12,8 @@ def _rule(q, t, a, i):
     return GradingResult(question_index=i, is_correct=c, score=100.0 if c else 0.0, max_score=100.0, feedback="" if c else f"正确答案：{_ext(q)}")
 
 def _fill(q, a, i):
+    if not a.strip():
+        return GradingResult(question_index=i, is_correct=False, score=0.0, max_score=100.0, feedback="未作答")
     for x in q.get("answers",[]):
         if x.lower() in a.lower() or a.lower() in x.lower(): return GradingResult(question_index=i, is_correct=True, score=100.0, max_score=100.0, feedback="正确！")
     return GradingResult(question_index=i, is_correct=False, score=0.0, max_score=100.0, feedback=f"可接受：{' / '.join(q.get('answers',[]))}")

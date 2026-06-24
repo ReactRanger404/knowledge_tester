@@ -16,7 +16,10 @@ BATCH_SYSTEM = """批量审核以下题目。
 app = FastAPI(title="Quality Reviewer")
 
 def _build_prompt(q: dict) -> str:
-    ans = q.get('correct_answer','') or (str(chr(65+q['correct_index'])) if 'correct_index' in q else '') or (str(q.get('judgment','')))
+    ans = (q.get('correct_answer','') or
+           (str(chr(65+q['correct_index'])) if 'correct_index' in q else '') or
+           (str(q.get('judgment',''))) or
+           (' / '.join(q.get('answers',[])) or ''))
     dist = ', '.join(q.get('distractors',[]) or q.get('options',[]))
     return f"知识点：{q.get('knowledge_point','')}\n题干：{q.get('stem','')}\n答案：{ans}\n干扰项：{dist}\n难度：{q.get('difficulty','medium')}"
 

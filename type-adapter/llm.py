@@ -1,6 +1,9 @@
+"""LLM 客户端 — 题型适配专用，支持 tool calling。"""
 import os, re, asyncio, json as _json
 import httpx
 from openai import AsyncOpenAI
+from tools import TA_TOOLS
+
 _client = None
 _lock = asyncio.Lock()
 async def _c():
@@ -38,3 +41,25 @@ async def chat_structured(messages, resp_model, temperature=0.3):
             return resp_model.model_validate(d)
         except Exception:
             return None
+
+async def chat_with_tool(messages, target_type: str, temperature=0.3):
+    """用 tool calling 让 LLM 输出指定题型的结构化数据。"""
+    tool_def = TA_TOOLS.get(target_type)
+    if not tool_def:
+        return None
+    client = await _c()
+    try:
+        r = await client.chat.completions.create(
+            model=os.getenv("LLM_MODEL_TA", os.getenv("LLM_MODEL", "deepseek-v4-flash")),
+            messages=messages, temperature=temperature,
+            tools=[tool_def],
+            tool_choice={"type": "function", "function": {"name": tool_def["function"]["name"]}},
+        )
+        msg = r.choices[0].message
+        if msg.tool_calls:
+            return _json.loads(msg.tool_calls[0].function.arguments)
+        print(f"[TA] tool calling 未返回 tool_calls, content={msg.content[:100] if msg.content else '空'}")
+        return None
+    except Exception as e:
+        print(f"[TA] tool calling 异常: {e}")
+        return None

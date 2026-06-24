@@ -1,4 +1,4 @@
-"""LLM 客户端 — 可独立配置环境变量 LLM_MODEL_QG 来换模型。"""
+"""LLM 客户端 — 纯 JSON 输出。"""
 import os, re, asyncio, json as _json
 import httpx
 from openai import AsyncOpenAI

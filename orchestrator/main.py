@@ -133,15 +133,30 @@ async def reindex_kb():
 if __name__ == "__main__":
     import httpx, uvicorn
     BASE = os.path.dirname(os.path.dirname(__file__))
+    LOG_DIR = os.path.join(BASE, "logs")
+    os.makedirs(LOG_DIR, exist_ok=True)
     AGENTS = [
         ("knowledge-extractor",8001), ("question-generator",8002),
         ("type-adapter",8003), ("quality-reviewer",8004),
         ("exam-composer",8005), ("grader",8006), ("error-analyzer",8007),
     ]
+
+    # 启动前先杀掉占用 Agent 端口的旧进程
+    r = subprocess.run(["netstat", "-ano"], capture_output=True, text=True)
+    killed = set()
+    for line in r.stdout.split("\n"):
+        for _, port in AGENTS:
+            if f":{port} " in line and "LISTEN" in line:
+                pid = line.strip().split()[-1]
+                if pid not in killed:
+                    subprocess.run(["taskkill", "/F", "/PID", pid], capture_output=True)
+                    killed.add(pid)
+
     print("="*40+"\n  Knowledge Tester 启动中...\n"+"="*40)
     for name,port in AGENTS:
-        subprocess.Popen([sys.executable,"main.py"],cwd=os.path.join(BASE,name),
-            creationflags=subprocess.CREATE_NEW_CONSOLE if sys.platform=="win32" else 0)
+        log = open(os.path.join(LOG_DIR, f"{name}.log"), "w", encoding="utf-8")
+        subprocess.Popen([sys.executable,"main.py"], cwd=os.path.join(BASE,name),
+            stdout=log, stderr=subprocess.STDOUT)
         time.sleep(0.3)
     def wait_all():
         for n,p in AGENTS:
@@ -149,7 +164,7 @@ if __name__ == "__main__":
                 try:
                     if httpx.get(f"http://localhost:{p}/health",timeout=2).status_code==200: break
                 except: time.sleep(0.5)
-            print(f"  ✅ {n} (:p)")
+            print(f"  ✅ {n} ({p})")
     threading.Thread(target=wait_all).start()
     print(f"\n  🎯 http://localhost:8000\n"+"="*40)
     uvicorn.run(app, host="0.0.0.0", port=8000)

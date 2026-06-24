@@ -7,6 +7,7 @@ import aiohttp
 from langgraph.graph import StateGraph, END, START
 from orchestrator.models import ExamPaper, GradingReport, GradingResult, ErrorAnalysisReport
 from orchestrator.models import ChoiceQuestion, JudgmentQuestion, FillBlankQuestion, ShortAnswerQuestion, EssayQuestion
+from rag.vector_store import get_store
 
 AGENTS = {
     "kp": os.getenv("AGENT_KP","http://knowledge-extractor:8000") if os.getenv("DOCKER") else os.getenv("AGENT_KP","http://localhost:8001"),
@@ -20,7 +21,6 @@ AGENTS = {
 TIMEOUT = 180.0
 
 async def _call(name: str, body: dict) -> dict | list:
-    """调用 Agent，用 aiohttp 避免连接池问题。"""
     async with aiohttp.ClientSession(
         timeout=aiohttp.ClientTimeout(total=TIMEOUT),
         connector=aiohttp.TCPConnector(force_close=True),
@@ -48,10 +48,11 @@ async def extract_knowledge(state: ExamState) -> dict:
     return {"knowledge_points": kps}
 
 async def generate_questions(state: ExamState) -> dict:
-    """并行出题 + 并行题型适配，只处理够用的知识点。"""
+    """并行出题，每个知识点对每种题型直接调 QG（tool calling）跳过 TA。"""
     kps = state["knowledge_points"]
     types = state["config"].get("question_types", ["choice"])
     total = state["config"].get("total_count", 10)
+    kb_name = state["config"].get("kb_name", "")
     needed = (total + len(types) - 1) // len(types)
     needed = min(int(needed * 1.5), len(kps))
     if len(kps) > needed:
@@ -61,11 +62,22 @@ async def generate_questions(state: ExamState) -> dict:
         t0 = __import__('time').time()
         imp = kp.get("importance", 0.5)
         diff = "hard" if imp >= 0.8 else ("medium" if imp >= 0.5 else "easy")
+        context = ""
+        if kb_name:
+            try:
+                store = get_store()
+                results = await store.search(kp.get("concept", ""), top_k=2, doc_name=kb_name)
+                context = "\n".join(r["text"][:500] for r in results)
+            except Exception:
+                pass
+        # QG 出通用题（基于上下文，不管格式）
         r = await _call("qg", {"type": "generate_question", "payload": {
-            "knowledge_point": kp.get("concept", ""), "importance": imp, "difficulty": diff}})
+            "knowledge_point": kp.get("concept", ""), "context": context,
+            "importance": imp, "difficulty": diff}})
         raw = r.get("payload", {}).get("raw_question", {})
         if not raw:
             return []
+        # TA 用 tool calling 并行转各题型（只管格式，不碰内容）
         tas = await asyncio.gather(*[
             _call("ta", {"type": "adapt_type", "payload": {"raw_question": raw, "target_type": t}})
             for t in types
