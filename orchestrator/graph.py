@@ -41,44 +41,46 @@ def _route(state: ExamState) -> Literal["batch_review", "compose_exam"]:
 
 async def extract_knowledge(state: ExamState) -> dict:
     cfg = state["config"]
+    t0 = __import__('time').time()
     r = await _call("kp", {"type": "extract_knowledge", "payload": {"source_material": cfg["source_material"]}})
-    return {"knowledge_points": r.get("payload", {}).get("knowledge_points", [])}
+    kps = r.get("payload", {}).get("knowledge_points", [])
+    print(f"[计时] 知识点提取: {len(kps)} 个, 耗时 {__import__('time').time()-t0:.0f}s")
+    return {"knowledge_points": kps}
 
 async def generate_questions(state: ExamState) -> dict:
     """并行出题 + 并行题型适配，只处理够用的知识点。"""
     kps = state["knowledge_points"]
     types = state["config"].get("question_types", ["choice"])
     total = state["config"].get("total_count", 10)
-    # 取 ceil(total / len(types)) 个知识点，再乘 1.5 冗余应对审核淘汰
     needed = (total + len(types) - 1) // len(types)
     needed = min(int(needed * 1.5), len(kps))
     if len(kps) > needed:
         kps = sorted(kps, key=lambda k: k.get("importance", 0), reverse=True)[:needed]
 
     async def _gen(kp):
+        t0 = __import__('time').time()
         imp = kp.get("importance", 0.5)
         diff = "hard" if imp >= 0.8 else ("medium" if imp >= 0.5 else "easy")
-        # 出题
         r = await _call("qg", {"type": "generate_question", "payload": {
             "knowledge_point": kp.get("concept", ""), "importance": imp, "difficulty": diff}})
         raw = r.get("payload", {}).get("raw_question", {})
         if not raw:
             return []
-        # 并行适配所有题型
         tas = await asyncio.gather(*[
             _call("ta", {"type": "adapt_type", "payload": {"raw_question": raw, "target_type": t}})
             for t in types
         ], return_exceptions=True)
-        return [
-            ta.get("payload", {}).get("formatted_question", {})
-            for ta in tas
-            if isinstance(ta, dict) and ta.get("payload", {}).get("formatted_question", {})
-        ]
+        fmt_qs = [ta.get("payload", {}).get("formatted_question", {}) for ta in tas
+                  if isinstance(ta, dict) and ta.get("payload", {}).get("formatted_question", {})]
+        print(f"[计时] 知识点「{kp.get('concept','')[:20]}」: QG+TA {__import__('time').time()-t0:.0f}s → {len(fmt_qs)} 题")
+        return fmt_qs
 
+    t0 = __import__('time').time()
     pending = []
     for res in await asyncio.gather(*[_gen(kp) for kp in kps], return_exceptions=True):
         if isinstance(res, list):
             pending.extend(res)
+    print(f"[计时] QG+TA 总耗时: {__import__('time').time()-t0:.0f}s, 共 {len(pending)} 道格式化题目")
     return {"pending_review": pending}
 
 CHUNK_SIZE = 10
@@ -88,14 +90,18 @@ async def batch_review(state: ExamState) -> dict:
     if not pending:
         return {"pending_review": []}
     pool = list(state["formatted_pool"])
-    # 分块送审，每块不超过 CHUNK_SIZE 道题
+    t0 = __import__('time').time()
     for chunk_start in range(0, len(pending), CHUNK_SIZE):
         chunk = pending[chunk_start:chunk_start + CHUNK_SIZE]
         r = await _call("qr", {"type": "review_batch", "payload": {"questions": chunk}})
         reviews = r.get("payload", {}).get("reviews", [])
+        passed = 0
         for i, rv in enumerate(reviews):
             if rv.get("verdict") == "pass" and i < len(chunk):
                 pool.append(chunk[i])
+                passed += 1
+        print(f"[计时] 批量审核: {len(chunk)} 题, 通过 {passed}, 耗时 {__import__('time').time()-t0:.0f}s")
+    print(f"[计时] 审核总耗时: {__import__('time').time()-t0:.0f}s, 池中 {len(pool)} 题")
     return {"pending_review": [], "formatted_pool": pool}
 
 async def compose_exam(state: ExamState) -> dict:
