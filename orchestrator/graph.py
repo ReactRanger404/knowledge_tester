@@ -33,10 +33,17 @@ async def _call(name: str, body: dict) -> dict | list:
 
 class ExamState(TypedDict):
     config: dict; knowledge_points: list; question_queue: list
-    formatted_pool: list; exam_paper: Optional[dict]; error: Optional[str]
+    formatted_pool: list; pending_review: list
+    exam_paper: Optional[dict]; error: Optional[str]
 
-def _route(state: ExamState) -> Literal["compose_exam", "process_next_question"]:
-    return "process_next_question" if state["question_queue"] else "compose_exam"
+BATCH_SIZE = 10  # 攒够 10 道题才送审
+
+def _route(state: ExamState) -> Literal["process_next_question", "batch_review", "compose_exam"]:
+    if state["question_queue"]:
+        return "process_next_question"
+    if state.get("pending_review"):
+        return "batch_review"
+    return "compose_exam"
 
 async def extract_knowledge(state: ExamState) -> dict:
     cfg = state["config"]
@@ -56,23 +63,30 @@ async def generate_questions(state: ExamState) -> dict:
     return {"question_queue": qq}
 
 async def process_next_question(state: ExamState) -> dict:
-    qq = list(state["question_queue"]); pool = list(state["formatted_pool"])
-    if not qq: return {}
+    qq = list(state["question_queue"])
+    pending = list(state.get("pending_review", []))
+    if not qq:
+        return {}
     raw_q, ttype, rev = qq.pop(0)
-    # 题型适配
-    ta = await _call("ta",{"type":"adapt_type","payload":{"raw_question":raw_q,"target_type":ttype}})
-    fmt = ta.get("payload",{}).get("formatted_question",{})
-    if not fmt: return {"question_queue":qq}
-    # 审核
-    qr = await _call("qr",{"type":"review_question","payload":{"formatted_question":fmt,"revision_round":rev}})
-    for r in (qr if isinstance(qr,list) else [qr]):
-        if r.get("type")=="question_reviewed":
-            if r.get("payload",{}).get("review",{}).get("verdict")=="pass": pool.append(fmt)
-        elif r.get("type")=="revise_question" and rev<1:
-            rev_r = await _call("qg",{"type":"revise_question","payload":r.get("payload",{})})
-            rraw = rev_r.get("payload",{}).get("raw_question",{})
-            if rraw: qq.append((rraw,ttype,rev+1))
-    return {"question_queue":qq,"formatted_pool":pool}
+    # 只做题型适配，攒起来等批量审核
+    ta = await _call("ta", {"type": "adapt_type", "payload": {"raw_question": raw_q, "target_type": ttype}})
+    fmt = ta.get("payload", {}).get("formatted_question", {})
+    if fmt:
+        pending.append(fmt)
+    return {"question_queue": qq, "pending_review": pending}
+
+async def batch_review(state: ExamState) -> dict:
+    pending = list(state.get("pending_review", []))
+    if not pending:
+        return {"pending_review": []}
+    pool = list(state["formatted_pool"])
+    # 一次送审全部攒下的题目
+    r = await _call("qr", {"type": "review_batch", "payload": {"questions": pending}})
+    reviews = r.get("payload", {}).get("reviews", [])
+    for i, rv in enumerate(reviews):
+        if rv.get("verdict") == "pass" and i < len(pending):
+            pool.append(pending[i])
+    return {"pending_review": [], "formatted_pool": pool}
 
 async def compose_exam(state: ExamState) -> dict:
     pool = state["formatted_pool"]; cfg = state["config"]
@@ -97,10 +111,13 @@ async def compose_exam(state: ExamState) -> dict:
 def build_exam_graph():
     g = StateGraph(ExamState)
     g.add_node("extract_knowledge",extract_knowledge); g.add_node("generate_questions",generate_questions)
-    g.add_node("process_next_question",process_next_question); g.add_node("compose_exam",compose_exam)
+    g.add_node("process_next_question",process_next_question); g.add_node("batch_review",batch_review)
+    g.add_node("compose_exam",compose_exam)
     g.add_edge(START,"extract_knowledge"); g.add_edge("extract_knowledge","generate_questions")
     g.add_edge("generate_questions","process_next_question")
-    g.add_conditional_edges("process_next_question",_route,{"process_next_question":"process_next_question","compose_exam":"compose_exam"})
+    g.add_conditional_edges("process_next_question",_route,{
+        "process_next_question":"process_next_question","batch_review":"batch_review","compose_exam":"compose_exam"})
+    g.add_edge("batch_review","compose_exam")
     g.add_edge("compose_exam",END)
     return g.compile()
 

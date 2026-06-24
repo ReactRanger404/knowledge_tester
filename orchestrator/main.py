@@ -65,7 +65,8 @@ async def api_generate(config: ExamConfig):
 
     state = await _exam_graph.ainvoke({
         "config": config.model_dump(mode="json"), "knowledge_points": [],
-        "question_queue": [], "formatted_pool": [], "exam_paper": None, "error": None,
+        "question_queue": [], "formatted_pool": [], "pending_review": [],
+        "exam_paper": None, "error": None,
     }, {"recursion_limit": 100})
     paper = state.get("exam_paper")
     if paper: _exam_store[paper["id"]] = paper
