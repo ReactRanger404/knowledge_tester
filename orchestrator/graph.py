@@ -17,7 +17,7 @@ AGENTS = {
     "gr": os.getenv("AGENT_GR","http://grader:8000") if os.getenv("DOCKER") else os.getenv("AGENT_GR","http://localhost:8006"),
     "ea": os.getenv("AGENT_EA","http://error-analyzer:8000") if os.getenv("DOCKER") else os.getenv("AGENT_EA","http://localhost:8007"),
 }
-TIMEOUT = 60.0
+TIMEOUT = 180.0
 
 async def _call(name: str, body: dict) -> dict | list:
     """调用 Agent，用 aiohttp 避免连接池问题。"""
@@ -32,60 +32,70 @@ async def _call(name: str, body: dict) -> dict | list:
 # ═══════════════════════════════════ 出题图 ═══════════════════
 
 class ExamState(TypedDict):
-    config: dict; knowledge_points: list; question_queue: list
+    config: dict; knowledge_points: list
     formatted_pool: list; pending_review: list
     exam_paper: Optional[dict]; error: Optional[str]
 
-BATCH_SIZE = 10  # 攒够 10 道题才送审
-
-def _route(state: ExamState) -> Literal["process_next_question", "batch_review", "compose_exam"]:
-    if state["question_queue"]:
-        return "process_next_question"
-    if state.get("pending_review"):
-        return "batch_review"
-    return "compose_exam"
+def _route(state: ExamState) -> Literal["batch_review", "compose_exam"]:
+    return "batch_review" if state.get("pending_review") else "compose_exam"
 
 async def extract_knowledge(state: ExamState) -> dict:
     cfg = state["config"]
-    r = await _call("kp", {"type":"extract_knowledge","payload":{"source_material":cfg["source_material"]}})
-    return {"knowledge_points": r.get("payload",{}).get("knowledge_points",[])}
+    r = await _call("kp", {"type": "extract_knowledge", "payload": {"source_material": cfg["source_material"]}})
+    return {"knowledge_points": r.get("payload", {}).get("knowledge_points", [])}
 
 async def generate_questions(state: ExamState) -> dict:
-    kps = state["knowledge_points"]; types = state["config"].get("question_types",["choice"]); qq = []
-    async def _gen(kp):
-        imp = kp.get("importance",0.5)
-        diff = "hard" if imp>=0.8 else ("medium" if imp>=0.5 else "easy")
-        r = await _call("qg",{"type":"generate_question","payload":{"knowledge_point":kp.get("concept",""),"importance":imp,"difficulty":diff}})
-        raw = r.get("payload",{}).get("raw_question",{})
-        return [(raw,t,0) for t in types] if raw else []
-    for res in await asyncio.gather(*[_gen(kp) for kp in kps], return_exceptions=True):
-        if isinstance(res, list): qq.extend(res)
-    return {"question_queue": qq}
+    """并行出题 + 并行题型适配，只处理够用的知识点。"""
+    kps = state["knowledge_points"]
+    types = state["config"].get("question_types", ["choice"])
+    total = state["config"].get("total_count", 10)
+    # 取 ceil(total / len(types)) 个知识点，再乘 1.5 冗余应对审核淘汰
+    needed = (total + len(types) - 1) // len(types)
+    needed = min(int(needed * 1.5), len(kps))
+    if len(kps) > needed:
+        kps = sorted(kps, key=lambda k: k.get("importance", 0), reverse=True)[:needed]
 
-async def process_next_question(state: ExamState) -> dict:
-    qq = list(state["question_queue"])
-    pending = list(state.get("pending_review", []))
-    if not qq:
-        return {}
-    raw_q, ttype, rev = qq.pop(0)
-    # 只做题型适配，攒起来等批量审核
-    ta = await _call("ta", {"type": "adapt_type", "payload": {"raw_question": raw_q, "target_type": ttype}})
-    fmt = ta.get("payload", {}).get("formatted_question", {})
-    if fmt:
-        pending.append(fmt)
-    return {"question_queue": qq, "pending_review": pending}
+    async def _gen(kp):
+        imp = kp.get("importance", 0.5)
+        diff = "hard" if imp >= 0.8 else ("medium" if imp >= 0.5 else "easy")
+        # 出题
+        r = await _call("qg", {"type": "generate_question", "payload": {
+            "knowledge_point": kp.get("concept", ""), "importance": imp, "difficulty": diff}})
+        raw = r.get("payload", {}).get("raw_question", {})
+        if not raw:
+            return []
+        # 并行适配所有题型
+        tas = await asyncio.gather(*[
+            _call("ta", {"type": "adapt_type", "payload": {"raw_question": raw, "target_type": t}})
+            for t in types
+        ], return_exceptions=True)
+        return [
+            ta.get("payload", {}).get("formatted_question", {})
+            for ta in tas
+            if isinstance(ta, dict) and ta.get("payload", {}).get("formatted_question", {})
+        ]
+
+    pending = []
+    for res in await asyncio.gather(*[_gen(kp) for kp in kps], return_exceptions=True):
+        if isinstance(res, list):
+            pending.extend(res)
+    return {"pending_review": pending}
+
+CHUNK_SIZE = 10
 
 async def batch_review(state: ExamState) -> dict:
     pending = list(state.get("pending_review", []))
     if not pending:
         return {"pending_review": []}
     pool = list(state["formatted_pool"])
-    # 一次送审全部攒下的题目
-    r = await _call("qr", {"type": "review_batch", "payload": {"questions": pending}})
-    reviews = r.get("payload", {}).get("reviews", [])
-    for i, rv in enumerate(reviews):
-        if rv.get("verdict") == "pass" and i < len(pending):
-            pool.append(pending[i])
+    # 分块送审，每块不超过 CHUNK_SIZE 道题
+    for chunk_start in range(0, len(pending), CHUNK_SIZE):
+        chunk = pending[chunk_start:chunk_start + CHUNK_SIZE]
+        r = await _call("qr", {"type": "review_batch", "payload": {"questions": chunk}})
+        reviews = r.get("payload", {}).get("reviews", [])
+        for i, rv in enumerate(reviews):
+            if rv.get("verdict") == "pass" and i < len(chunk):
+                pool.append(chunk[i])
     return {"pending_review": [], "formatted_pool": pool}
 
 async def compose_exam(state: ExamState) -> dict:
@@ -110,15 +120,16 @@ async def compose_exam(state: ExamState) -> dict:
 
 def build_exam_graph():
     g = StateGraph(ExamState)
-    g.add_node("extract_knowledge",extract_knowledge); g.add_node("generate_questions",generate_questions)
-    g.add_node("process_next_question",process_next_question); g.add_node("batch_review",batch_review)
-    g.add_node("compose_exam",compose_exam)
-    g.add_edge(START,"extract_knowledge"); g.add_edge("extract_knowledge","generate_questions")
-    g.add_edge("generate_questions","process_next_question")
-    g.add_conditional_edges("process_next_question",_route,{
-        "process_next_question":"process_next_question","batch_review":"batch_review","compose_exam":"compose_exam"})
-    g.add_edge("batch_review","compose_exam")
-    g.add_edge("compose_exam",END)
+    g.add_node("extract_knowledge", extract_knowledge)
+    g.add_node("generate_questions", generate_questions)
+    g.add_node("batch_review", batch_review)
+    g.add_node("compose_exam", compose_exam)
+    g.add_edge(START, "extract_knowledge")
+    g.add_edge("extract_knowledge", "generate_questions")
+    g.add_conditional_edges("generate_questions", _route, {
+        "batch_review": "batch_review", "compose_exam": "compose_exam"})
+    g.add_edge("batch_review", "compose_exam")
+    g.add_edge("compose_exam", END)
     return g.compile()
 
 # ═══════════════════════════════════ 判题图 ═══════════════════
