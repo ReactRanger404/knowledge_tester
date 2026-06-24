@@ -167,7 +167,7 @@ class VectorStore:
             ]
 
     async def get_text_for_exam(self, doc_name: str) -> str:
-        results = await self.search(doc_name, top_k=MAX_CHUNKS)
+        results = await self.search(query=doc_name, doc_name=doc_name, top_k=MAX_CHUNKS)
         if not results: return ""
         results.sort(key=lambda r: r["chunk_index"])
         text = "\n".join(r["text"] for r in results)

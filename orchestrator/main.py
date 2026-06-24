@@ -46,8 +46,8 @@ async def api_generate(config: ExamConfig):
     # 如果指定了知识库名称，从块存储加载内容
     if config.kb_name and not config.source_material:
         store = get_store()
-        docs = store.get_documents()
-        if config.kb_name not in docs:
+        docs = await store.get_documents()
+        if config.kb_name not in [d["name"] for d in docs]:
             kb_path = os.path.join(KB_DIR, config.kb_name, "content.txt")
             if os.path.isfile(kb_path):
                 with open(kb_path, "r", encoding="utf-8") as f:
@@ -56,8 +56,8 @@ async def api_generate(config: ExamConfig):
             else:
                 return {"error": f"知识库「{config.kb_name}」不存在"}
         else:
-            config.source_material = store.get_text_for_exam(config.kb_name)
-            total = store.get_chunk_count(config.kb_name)
+            config.source_material = await store.get_text_for_exam(config.kb_name)
+            total = await store.get_chunk_count(config.kb_name)
             print(f"[RAG] 加载「{config.kb_name}」({len(config.source_material)} 字符, 共 {total} 块)")
 
     if not config.source_material.strip():
@@ -66,7 +66,7 @@ async def api_generate(config: ExamConfig):
     state = await _exam_graph.ainvoke({
         "config": config.model_dump(mode="json"), "knowledge_points": [],
         "question_queue": [], "formatted_pool": [], "exam_paper": None, "error": None,
-    })
+    }, {"recursion_limit": 100})
     paper = state.get("exam_paper")
     if paper: _exam_store[paper["id"]] = paper
     return paper or {"error": "出题失败"}

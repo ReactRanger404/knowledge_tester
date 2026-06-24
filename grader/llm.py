@@ -1,14 +1,20 @@
-import os, re
+import os, re, asyncio
+import httpx
 from openai import AsyncOpenAI
 _client = None
-def _c():
+_lock = asyncio.Lock()
+async def _c():
     global _client
-    if _client is None: _client = AsyncOpenAI(api_key=os.getenv("LLM_API_KEY",""), base_url=os.getenv("LLM_BASE_URL","https://api.deepseek.com/v1"))
+    if _client is None:
+        async with _lock:
+            if _client is None:
+                _client = AsyncOpenAI(api_key=os.getenv("LLM_API_KEY",""), base_url=os.getenv("LLM_BASE_URL","https://api.deepseek.com/v1"), http_client=httpx.AsyncClient(proxy=None, trust_env=False))
     return _client
 async def chat_structured(messages, resp_model, temperature=0.2):
     for m in messages:
         if m["role"] == "system": m["content"] += "\n\n输出纯 JSON。"
-    r = await _c().chat.completions.create(
+    client = await _c()
+    r = await client.chat.completions.create(
         model=os.getenv("LLM_MODEL_GR", os.getenv("LLM_MODEL", "deepseek-v4-flash")),
         messages=messages, temperature=temperature, response_format={"type":"json_object"},
     )

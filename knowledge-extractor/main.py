@@ -20,7 +20,12 @@ async def handle(body: dict):
         {"role": "system", "content": SYSTEM},
         {"role": "user", "content": f"从以下资料提取知识点：\n\n{src}"},
     ]
-    result = await chat_structured(messages, KnowledgeExtractionResult)
+    try:
+        result = await chat_structured(messages, KnowledgeExtractionResult)
+    except Exception as e:
+        return {"type": "knowledge_extracted", "payload": {"knowledge_points":[]}, "error": str(e)}
+    if result is None:
+        return {"type": "knowledge_extracted", "payload": {"knowledge_points":[]}, "error": "LLM returned empty"}
     return {"type": "knowledge_extracted", "payload": result.model_dump(), "error": None}
 
 @app.get("/health")

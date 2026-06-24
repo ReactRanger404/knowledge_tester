@@ -8,7 +8,7 @@ class ReviewDimension(BaseModel):
     correctness: float = Field(ge=0,le=1)
     unambiguity: float = Field(ge=0,le=1)
     relevance: float = Field(ge=0,le=1)
-    difficulty_match: float = Field(ge=0,le=1)
+    difficulty_match: float = Field(default=0.5, ge=0, le=1)
 
 class ReviewResult(BaseModel):
     verdict: Verdict

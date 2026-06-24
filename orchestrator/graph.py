@@ -1,9 +1,9 @@
 """LangGraph — 编排 7 个独立 Agent 微服务。"""
 from __future__ import annotations
-import os, uuid, asyncio
+import os, uuid, asyncio, json
 from datetime import datetime
 from typing import TypedDict, Optional, Literal
-import httpx
+import aiohttp
 from langgraph.graph import StateGraph, END, START
 from orchestrator.models import ExamPaper, GradingReport, GradingResult, ErrorAnalysisReport
 from orchestrator.models import ChoiceQuestion, JudgmentQuestion, FillBlankQuestion, ShortAnswerQuestion, EssayQuestion
@@ -20,9 +20,14 @@ AGENTS = {
 TIMEOUT = 60.0
 
 async def _call(name: str, body: dict) -> dict | list:
-    async with httpx.AsyncClient(timeout=TIMEOUT) as c:
-        r = await c.post(f"{AGENTS[name]}/message", json=body)
-        r.raise_for_status(); return r.json()
+    """调用 Agent，用 aiohttp 避免连接池问题。"""
+    async with aiohttp.ClientSession(
+        timeout=aiohttp.ClientTimeout(total=TIMEOUT),
+        connector=aiohttp.TCPConnector(force_close=True),
+    ) as session:
+        async with session.post(f"{AGENTS[name]}/message", json=body) as r:
+            r.raise_for_status()
+            return await r.json()
 
 # ═══════════════════════════════════ 出题图 ═══════════════════
 
@@ -63,7 +68,7 @@ async def process_next_question(state: ExamState) -> dict:
     for r in (qr if isinstance(qr,list) else [qr]):
         if r.get("type")=="question_reviewed":
             if r.get("payload",{}).get("review",{}).get("verdict")=="pass": pool.append(fmt)
-        elif r.get("type")=="revise_question" and rev<3:
+        elif r.get("type")=="revise_question" and rev<1:
             rev_r = await _call("qg",{"type":"revise_question","payload":r.get("payload",{})})
             rraw = rev_r.get("payload",{}).get("raw_question",{})
             if rraw: qq.append((rraw,ttype,rev+1))

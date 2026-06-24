@@ -4,7 +4,9 @@ from llm import chat_structured
 from models import RawQuestion
 
 SYSTEM = """根据知识点生成题目。
-题干清晰，答案唯一，干扰项是典型错误而非随机选项。"""
+题干清晰，答案唯一，干扰项是典型错误而非随机选项。
+请严格返回以下 JSON 格式：
+{"stem": "题目题干", "correct_answer": "正确答案", "distractors": ["干扰项1","干扰项2","干扰项3"], "knowledge_point": "知识点名", "difficulty": "easy/medium/hard"}"""
 
 app = FastAPI(title="Question Generator")
 
@@ -17,7 +19,12 @@ async def handle(body: dict):
     else:
         user = f"知识点：{p.get('knowledge_point','')}\n上下文：{p.get('context','')}\n重要度：{p.get('importance',0.5)}\n目标难度：{p.get('difficulty','medium')}"
         out_type = "question_generated"
-    result = await chat_structured([{"role":"system","content":SYSTEM},{"role":"user","content":user}], RawQuestion)
+    try:
+        result = await chat_structured([{"role":"system","content":SYSTEM},{"role":"user","content":user}], RawQuestion)
+    except Exception as e:
+        return {"type": out_type, "payload": {"raw_question": {}}, "error": str(e)}
+    if result is None:
+        return {"type": out_type, "payload": {"raw_question": {}}, "error": "LLM returned empty"}
     return {"type": out_type, "payload": {"raw_question": result.model_dump()}, "error": None}
 
 @app.get("/health")
