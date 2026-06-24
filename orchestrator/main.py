@@ -56,9 +56,11 @@ async def api_generate(config: ExamConfig):
             else:
                 return {"error": f"知识库「{config.kb_name}」不存在"}
         else:
-            config.source_material = await store.get_text_for_exam(config.kb_name)
             total = await store.get_chunk_count(config.kb_name)
-            print(f"[RAG] 加载「{config.kb_name}」({len(config.source_material)} 字符, 共 {total} 块)")
+            # 要出 N 道题，就看 N 个 chunk，简单直接
+            chunks_needed = min(config.total_count, total)
+            config.source_material = await store.get_text_for_exam(config.kb_name, max_chunks=chunks_needed)
+            print(f"[RAG] 加载「{config.kb_name}」({len(config.source_material)} 字符, 随机 {chunks_needed}/{total} 块)")
 
     if not config.source_material.strip():
         return {"error": "请提供 source_material 或指定 kb_name"}

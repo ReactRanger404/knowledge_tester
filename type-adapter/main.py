@@ -4,7 +4,7 @@ from llm import chat_structured
 from models import ChoiceQuestion, JudgmentQuestion, FillBlankQuestion, ShortAnswerQuestion, EssayQuestion
 
 TYPE_MAP = {"choice": ChoiceQuestion, "judgment": JudgmentQuestion, "fill_blank": FillBlankQuestion, "short_answer": ShortAnswerQuestion, "essay": EssayQuestion}
-SYSTEM = "将原始题目转为指定题型。保持知识点和难度不变。\n\n选择题返回 JSON：{\"type\":\"choice\",\"stem\":\"题干\",\"options\":[\"A\",\"B\",\"C\",\"D\"],\"correct_index\":0,\"difficulty\":\"medium\",\"knowledge_point\":\"\",\"explanation\":\"\"}\n判断题返回 JSON：{\"type\":\"judgment\",\"stem\":\"题干\",\"judgment\":true,\"difficulty\":\"medium\",\"knowledge_point\":\"\",\"explanation\":\"\"}"
+SYSTEM = "将原始题目转为指定题型。保持知识点和难度不变。\n\n选择题返回 JSON：{\"type\":\"choice\",\"stem\":\"题干\",\"options\":[\"A\",\"B\",\"C\",\"D\"],\"correct_index\":0,\"difficulty\":\"medium\",\"knowledge_point\":\"\",\"explanation\":\"\"}\n判断题返回 JSON：{\"type\":\"judgment\",\"stem\":\"题干\",\"judgment\":true,\"difficulty\":\"medium\",\"knowledge_point\":\"\",\"explanation\":\"\"}\n填空题返回 JSON：{\"type\":\"fill_blank\",\"stem\":\"题干（用____表示填空位置）\",\"answers\":[\"答案1\"],\"difficulty\":\"medium\",\"knowledge_point\":\"\",\"explanation\":\"\"}"
 
 app = FastAPI(title="Type Adapter")
 

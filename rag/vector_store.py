@@ -166,14 +166,24 @@ class VectorStore:
                 for r in rows
             ]
 
-    async def get_text_for_exam(self, doc_name: str) -> str:
-        results = await self.search(query=doc_name, doc_name=doc_name, top_k=MAX_CHUNKS)
-        if not results: return ""
-        results.sort(key=lambda r: r["chunk_index"])
-        text = "\n".join(r["text"] for r in results)
+    async def get_text_for_exam(self, doc_name: str, max_chunks: int = 10) -> str:
+        """随机抽取 chunk 用于出题，只取够用的量。"""
         total = await self.get_chunk_count(doc_name)
-        if total > MAX_CHUNKS:
-            text += f"\n\n[全文共 {total} 块，已检索前 {len(results)} 块]"
+        if total == 0:
+            return ""
+        import random
+        n = min(max_chunks, total)
+        indices = sorted(random.sample(range(total), n))
+        await self._ensure_init()
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch(
+                "SELECT content FROM kb_chunks WHERE doc_name=$1 ORDER BY chunk_index",
+                doc_name,
+            )
+        texts = [rows[i]["content"] for i in indices if i < len(rows)]
+        text = "\n".join(texts)
+        if total > n:
+            text += f"\n\n[全文共 {total} 块，已随机选取 {n} 块]"
         return text
 
     async def get_full_text(self, doc_name: str) -> str:
