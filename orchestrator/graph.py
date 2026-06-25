@@ -138,8 +138,6 @@ async def compose_exam(state: ExamState) -> dict:
                 try: qs.append(m.model_validate(qd))
                 except: qs.append(qd)
             else: qs.append(qd)
-    if not qs:
-        return {"exam_paper": None, "error": "组卷后无有效题目"}
     paper = ExamPaper(id=str(uuid.uuid4())[:8],title=f"测验-{datetime.now().strftime('%m-%d %H:%M')}",questions=qs,question_count=len(qs),
         difficulty_summary=comp.get("difficulty_summary",{}),knowledge_coverage=comp.get("knowledge_points",[]))
     return {"exam_paper":paper.model_dump(mode="json")}
