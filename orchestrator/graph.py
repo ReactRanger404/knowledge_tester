@@ -180,21 +180,19 @@ async def analyze_errors(state: GradeState) -> dict:
     report=GradingReport(exam_id=state["exam_paper"]["id"],total_questions=len(res),correct_count=correct,
         total_score=sum(r.get("score",0) for r in res),max_total_score=sum(r.get("max_score",100) for r in res),
         results=[GradingResult(**r) for r in res])
-    errors=[]
+    def _answer(q):
+        if "correct_index" in q: return f"{chr(65+q['correct_index'])}"
+        if "judgment" in q: return str(q["judgment"])
+        if "answers" in q: return " / ".join(q["answers"])
+        return q.get("reference_answer","") or q.get("correct_answer","")
+    items=[]
     for r,qd in zip(res,qs):
-        if r.get("is_correct"): continue
         ua=um.get(r.get("question_index",0),{})
-        def _e(q):
-            if "correct_index" in q: return f"{chr(65+q['correct_index'])}"
-            if "judgment" in q: return str(q["judgment"])
-            if "answers" in q: return " / ".join(q["answers"])
-            return q.get("reference_answer","") or q.get("correct_answer","")
-        errors.append({"question_index":r["question_index"],"stem":qd.get("stem",""),"knowledge_point":qd.get("knowledge_point",""),
-            "difficulty":str(qd.get("difficulty","")),"correct_answer":_e(qd),"user_answer":ua.get("answer_text","未作答"),"feedback":r.get("feedback","")})
+        items.append({"question_index":r["question_index"],"stem":qd.get("stem",""),"knowledge_point":qd.get("knowledge_point",""),
+            "difficulty":str(qd.get("difficulty","")),"correct_answer":_answer(qd),"user_answer":ua.get("answer_text","未作答"),"feedback":r.get("feedback",""),"is_correct":r.get("is_correct",False)})
     out={"grading_report":report.model_dump(mode="json")}
-    if errors:
-        ea=await _call("ea",{"type":"analyze_errors","payload":{"exam_id":state["exam_paper"]["id"],"error_details":errors,"total_count":len(qs)}})
-        out["error_analysis"]=ea.get("payload",{})
+    ea=await _call("ea",{"type":"analyze_errors","payload":{"exam_id":state["exam_paper"]["id"],"error_details":items,"total_count":len(qs)}})
+    out["error_analysis"]=ea.get("payload",{})
     return out
 
 def build_grading_graph():

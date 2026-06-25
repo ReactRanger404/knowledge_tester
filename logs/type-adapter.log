@@ -1,82 +1,23 @@
-INFO:     Started server process [24884]
+INFO:     Started server process [31404]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8003 (Press CTRL+C to quit)
-INFO:     127.0.0.1:51777 - "GET /health HTTP/1.1" 200 OK
-[TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
-[TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
-[TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
-[TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
-INFO:     127.0.0.1:62977 - "POST /message HTTP/1.1" 200 OK
-[TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
-[TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
-[TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
-INFO:     127.0.0.1:62975 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:62976 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:62974 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:62986 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:62989 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:62982 - "POST /message HTTP/1.1" 200 OK
-[TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
-INFO:     127.0.0.1:62992 - "POST /message HTTP/1.1" 200 OK
-[TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
-INFO:     127.0.0.1:62995 - "POST /message HTTP/1.1" 200 OK
-[TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
-[TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
-[TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
-INFO:     127.0.0.1:53410 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53408 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53412 - "POST /message HTTP/1.1" 200 OK
-[TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
-[TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
-[TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
-[TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
-INFO:     127.0.0.1:54911 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:54913 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:54917 - "POST /message HTTP/1.1" 200 OK
-[TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
-INFO:     127.0.0.1:54915 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:54922 - "POST /message HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59244 - "GET /health HTTP/1.1" 200 OK
 [TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
 [TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
 [TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
 [TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
 [TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
-INFO:     127.0.0.1:61832 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:61834 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:61830 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:61836 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:61837 - "POST /message HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62847 - "POST /message HTTP/1.1" 200 OK
+[TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
+INFO:     127.0.0.1:62854 - "POST /message HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62856 - "POST /message HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62858 - "POST /message HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62849 - "POST /message HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62852 - "POST /message HTTP/1.1" 200 OK
 [TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
 [TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
+INFO:     127.0.0.1:62860 - "POST /message HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62861 - "POST /message HTTP/1.1" 200 OK
 [TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
-[TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
-INFO:     127.0.0.1:61870 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:61872 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:61876 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:61874 - "POST /message HTTP/1.1" 200 OK
-[TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
-[TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
-[TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
-[TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
-INFO:     127.0.0.1:57346 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57352 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57348 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57350 - "POST /message HTTP/1.1" 200 OK
-[TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
-INFO:     127.0.0.1:57354 - "POST /message HTTP/1.1" 200 OK
-[TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
-[TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
-[TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
-[TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
-INFO:     127.0.0.1:50102 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:50105 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:50101 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:50107 - "POST /message HTTP/1.1" 200 OK
-[TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
-INFO:     127.0.0.1:50109 - "POST /message HTTP/1.1" 200 OK
-[TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
-[TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
-[TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
-[TA] tool calling 异常: Error code: 400 - {'error': {'message': 'Thinking mode does not support this tool_choice', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_request_error'}}
-INFO:     127.0.0.1:56225 - "POST /message HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62862 - "POST /message HTTP/1.1" 200 OK

@@ -1,46 +1,14 @@
-INFO:     Started server process [24684]
+INFO:     Started server process [30524]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8002 (Press CTRL+C to quit)
-INFO:     127.0.0.1:51776 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:62963 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:62962 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:62956 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:62959 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:62958 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:62960 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:62961 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:62955 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:62957 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53404 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53403 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53402 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:54901 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:54902 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:54903 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:54904 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:54900 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:61824 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:61821 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:61820 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:61823 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:61822 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:61864 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:61862 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:61860 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:61861 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:61863 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57338 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57335 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57337 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57336 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57339 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:50093 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:50090 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:50094 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:50092 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:50091 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56210 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56220 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56206 - "POST /message HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56218 - "POST /message HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59241 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62835 - "POST /message HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62834 - "POST /message HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62831 - "POST /message HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62829 - "POST /message HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62833 - "POST /message HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62830 - "POST /message HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62827 - "POST /message HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62828 - "POST /message HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62832 - "POST /message HTTP/1.1" 200 OK
