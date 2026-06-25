@@ -2,6 +2,8 @@
 import os, re, asyncio, json as _json
 import httpx
 from openai import AsyncOpenAI
+from dotenv import load_dotenv
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"))
 
 _client = None
 _lock = asyncio.Lock()

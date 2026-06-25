@@ -81,7 +81,8 @@ async def generate_questions(state: ExamState) -> dict:
                 pass
         r = await _call("qg", {"type": "generate_question", "payload": {
             "knowledge_point": kp.get("concept", ""), "context": context,
-            "importance": kp.get("importance", 0.5), "difficulty": diff}})
+            "importance": kp.get("importance", 0.5), "difficulty": diff,
+            "target_type": ttype}})
         raw = r.get("payload", {}).get("raw_question", {})
         if not raw:
             return None

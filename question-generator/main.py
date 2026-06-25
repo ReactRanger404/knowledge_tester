@@ -4,7 +4,13 @@ from fastapi import FastAPI
 from llm import chat_structured
 from models import RawQuestion
 
-SYSTEM = """你是大学专业课出题教师。根据知识点和教材原文出一道选择题。
+SYSTEM = """你是大学专业课出题教师。根据知识点和教材原文出题。
+
+目标题型（由 target_type 指定）：
+- choice：选择题，给出题干和 4 个选项，correct_answer 填正确选项的文字，distractors 填错误选项
+- judgment：判断题，stem 必须是一个明确的陈述句（可直接判断对错），correct_answer 填"正确"或"错误"
+- fill_blank：填空题，stem 中用____表示填空位置，correct_answer 填答案
+
 要求：
 - 题目有区分度，考核心概念而非细枝末节
 - 题干清晰不含糊，读完就知道问什么
@@ -36,7 +42,8 @@ async def handle(body: dict):
     ctx = p.get("context", "")
     imp = p.get("importance", 0.5)
     diff = p.get("difficulty", "medium")
-    user = f"知识点：{kp}\n上下文：{ctx}\n重要度：{imp}\n目标难度：{diff}"
+    tt = p.get("target_type", "choice")
+    user = f"知识点：{kp}\n上下文：{ctx}\n重要度：{imp}\n目标难度：{diff}\n目标题型：{tt}"
 
     try:
         result = await chat_structured([{"role":"system","content":SYSTEM},{"role":"user","content":user}], RawQuestion)

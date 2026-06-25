@@ -3,6 +3,8 @@ import os, re, sys, asyncio, json as _json
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 import httpx
 from openai import AsyncOpenAI
+from dotenv import load_dotenv
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"))
 from tools import TA_TOOLS
 
 _client = None

@@ -23,6 +23,14 @@ def _compose(pool, type_counts, total):
             if kp and sum(1 for s in sel if pool[s].get("knowledge_point","")==kp) >= 2: continue
             sel.append(i); used.add(kp); picked += 1
     short = max(0, total - len(sel))
+    # 如果某种题型池子里不够，从其他题型补足总数
+    if short:
+        remaining = [i for i in idx if i not in sel]
+        for i in remaining:
+            if short <= 0: break
+            kp = pool[i].get("knowledge_point","")
+            if kp and sum(1 for s in sel if pool[s].get("knowledge_point","")==kp) >= 2: continue
+            sel.append(i); short -= 1
     sel.sort(key=lambda i: {"easy":0,"medium":1,"hard":2}.get(pool[i].get("difficulty","medium"),1))
     ts, ds, kps = Counter(), Counter(), set()
     for i in sel:
