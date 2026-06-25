@@ -1,5 +1,6 @@
-"""LLM 客户端 — 题型适配专用，支持 tool calling。"""
-import os, re, asyncio, json as _json
+"""LLM 客户端 — 题型适配专用，tool calling + JSON 双保险。"""
+import os, re, sys, asyncio, json as _json
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 import httpx
 from openai import AsyncOpenAI
 from tools import TA_TOOLS

@@ -14,7 +14,7 @@ TOOL_JUDGMENT = {
                 "knowledge_point": {"type": "string"},
                 "explanation": {"type": "string"},
             },
-            "required": ["stem", "judgment", "difficulty"],
+            "required": ["stem", "judgment", "difficulty", "explanation"],
         },
     },
 }

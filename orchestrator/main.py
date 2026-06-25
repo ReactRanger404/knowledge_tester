@@ -57,10 +57,10 @@ async def api_generate(config: ExamConfig):
                 return {"error": f"知识库「{config.kb_name}」不存在"}
         else:
             total = await store.get_chunk_count(config.kb_name)
-            # 要出 N 道题，就看 N 个 chunk，简单直接
-            chunks_needed = min(config.total_count, total)
+            # 知识点提取只需要少量文本，固定 3 块即可
+            chunks_needed = min(3, total)
             config.source_material = await store.get_text_for_exam(config.kb_name, max_chunks=chunks_needed)
-            print(f"[RAG] 加载「{config.kb_name}」({len(config.source_material)} 字符, 随机 {chunks_needed}/{total} 块)")
+            print(f"[RAG] 加载「{config.kb_name}」({len(config.source_material)} 字符, 随机 {chunks_needed}/{total} 块)", flush=True)
 
     if not config.source_material.strip():
         return {"error": "请提供 source_material 或指定 kb_name"}
@@ -71,8 +71,11 @@ async def api_generate(config: ExamConfig):
         "exam_paper": None, "error": None,
     })
     paper = state.get("exam_paper")
-    if paper: _exam_store[paper["id"]] = paper
-    return paper or {"error": "出题失败"}
+    err = state.get("error", "")
+    if paper and "id" in paper:
+        _exam_store[paper["id"]] = paper
+        return paper
+    return {"error": err or "出题失败，请检查日志"}
 
 @app.post("/api/exam/{exam_id}/submit")
 async def api_submit(exam_id: str, answers: list[UserAnswer]):

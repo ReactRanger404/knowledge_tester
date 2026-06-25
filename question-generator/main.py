@@ -1,18 +1,20 @@
 """Agent ② 出题 — 基于上下文出通用题（RawQuestion）。"""
+import os, sys; sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from fastapi import FastAPI
 from llm import chat_structured
 from models import RawQuestion
 
-SYSTEM = """你是一位专业的大学教师，根据教材原文出考题。
+SYSTEM = """你是大学专业课出题教师。根据知识点和教材原文出一道选择题。
 要求：
-1. 题目必须有区分度，不能太简单
-2. 干扰项必须是真实常见的错误理解，不能是随意编造
-3. 如果给了上下文，必须基于上下文出题，不要自己编造内容
-4. explanation 要写清楚为什么选这个答案
-5. 每个知识点只出一道题
+- 题目有区分度，考核心概念而非细枝末节
+- 题干清晰不含糊，读完就知道问什么
+- **题目必须自包含，不能引用图表、图片、公式截图、上下文中的例子等学生看不到的内容**
+- 干扰项必须是真实存在的常见错误理解（不是随手编的）
+- 如果给了"上下文"，必须基于上下文出题，不能编造
+- **explanation 必填**，写清楚为什么正确答案是对的、其他选项错在哪，不少于 20 字
 
-请严格返回以下 JSON 格式：
-{"stem": "题目题干", "correct_answer": "正确答案", "distractors": ["干扰项1","干扰项2","干扰项3"], "knowledge_point": "知识点名", "difficulty": "easy/medium/hard", "explanation": "解析"}"""
+输出 JSON：
+{"stem": "题干", "correct_answer": "正确答案", "distractors": ["典型错误1","典型错误2","典型错误3"], "knowledge_point": "知识点名", "difficulty": "medium", "explanation": "解析"}"""
 
 app = FastAPI(title="Question Generator")
 

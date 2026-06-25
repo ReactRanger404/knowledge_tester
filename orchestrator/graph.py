@@ -48,20 +48,29 @@ async def extract_knowledge(state: ExamState) -> dict:
     return {"knowledge_points": kps}
 
 async def generate_questions(state: ExamState) -> dict:
-    """并行出题，每个知识点对每种题型直接调 QG（tool calling）跳过 TA。"""
+    """每个知识点出一道题，不够时轮询复用（换难度避免雷同）。"""
     kps = state["knowledge_points"]
     types = state["config"].get("question_types", ["choice"])
     total = state["config"].get("total_count", 10)
     kb_name = state["config"].get("kb_name", "")
-    needed = (total + len(types) - 1) // len(types)
-    needed = min(int(needed * 1.5), len(kps))
+    diffs = ["easy", "medium", "hard"]
+
+    # 按重要度取前 needed 个 KP，不够就轮询
+    needed = min(total, len(kps))
     if len(kps) > needed:
         kps = sorted(kps, key=lambda k: k.get("importance", 0), reverse=True)[:needed]
 
-    async def _gen(kp):
+    # 多生成一些，给审核留余量（保证各种题型都能通过审核）
+    gen_count = max(total, int(total * 1.8))
+    pairs = []
+    for i in range(gen_count):
+        kp = kps[i % len(kps)]
+        tt = types[i % len(types)]
+        dd = diffs[i % len(diffs)]
+        pairs.append((kp, tt, dd))
+
+    async def _gen(kp, ttype, diff):
         t0 = __import__('time').time()
-        imp = kp.get("importance", 0.5)
-        diff = "hard" if imp >= 0.8 else ("medium" if imp >= 0.5 else "easy")
         context = ""
         if kb_name:
             try:
@@ -70,29 +79,22 @@ async def generate_questions(state: ExamState) -> dict:
                 context = "\n".join(r["text"][:500] for r in results)
             except Exception:
                 pass
-        # QG 出通用题（基于上下文，不管格式）
         r = await _call("qg", {"type": "generate_question", "payload": {
             "knowledge_point": kp.get("concept", ""), "context": context,
-            "importance": imp, "difficulty": diff}})
+            "importance": kp.get("importance", 0.5), "difficulty": diff}})
         raw = r.get("payload", {}).get("raw_question", {})
         if not raw:
-            return []
-        # TA 用 tool calling 并行转各题型（只管格式，不碰内容）
-        tas = await asyncio.gather(*[
-            _call("ta", {"type": "adapt_type", "payload": {"raw_question": raw, "target_type": t}})
-            for t in types
-        ], return_exceptions=True)
-        fmt_qs = [ta.get("payload", {}).get("formatted_question", {}) for ta in tas
-                  if isinstance(ta, dict) and ta.get("payload", {}).get("formatted_question", {})]
-        print(f"[计时] 知识点「{kp.get('concept','')[:20]}」: QG+TA {__import__('time').time()-t0:.0f}s → {len(fmt_qs)} 题")
-        return fmt_qs
+            return None
+        ta = await _call("ta", {"type": "adapt_type", "payload": {"raw_question": raw, "target_type": ttype}})
+        fmt = ta.get("payload", {}).get("formatted_question", {})
+        if fmt:
+            print(f"[计时] 「{kp.get('concept','')[:16]}」{diff}→{ttype}: {__import__('time').time()-t0:.0f}s")
+        return fmt if fmt else None
 
     t0 = __import__('time').time()
-    pending = []
-    for res in await asyncio.gather(*[_gen(kp) for kp in kps], return_exceptions=True):
-        if isinstance(res, list):
-            pending.extend(res)
-    print(f"[计时] QG+TA 总耗时: {__import__('time').time()-t0:.0f}s, 共 {len(pending)} 道格式化题目")
+    results = await asyncio.gather(*[_gen(kp, t, d) for kp, t, d in pairs], return_exceptions=True)
+    pending = [r for r in results if isinstance(r, dict) and r]
+    print(f"[计时] 出题总耗时: {__import__('time').time()-t0:.0f}s, 共 {len(pending)} 道")
     return {"pending_review": pending}
 
 CHUNK_SIZE = 10
@@ -119,9 +121,12 @@ async def batch_review(state: ExamState) -> dict:
 async def compose_exam(state: ExamState) -> dict:
     pool = state["formatted_pool"]; cfg = state["config"]
     types = cfg.get("question_types",["choice"]); total = cfg.get("total_count",10)
+    if not pool:
+        # 池子为空 → 返回错误而非崩溃
+        return {"exam_paper": None, "error": "题库为空，无法组卷"}
     n=len(types); b=total//n if n else total; rem=total%n if n else 0
     tc = {t:b+(1 if i<rem else 0) for i,t in enumerate(types)}
-    ec = await _call("ec",{"type":"compose_exam","payload":{"question_pool":pool,"type_counts":tc,"total_count":total}})
+    ec = await _call("ec",{"type":"compose_exam","payload":{"question_pool":pool,"type_counts":tc,"total_count":min(total, len(pool))}})
     comp = ec.get("payload",{}); sel = comp.get("selected_indices",[])
     tm = {"choice":ChoiceQuestion,"judgment":JudgmentQuestion,"fill_blank":FillBlankQuestion,"short_answer":ShortAnswerQuestion,"essay":EssayQuestion}
     qs = []
@@ -132,6 +137,8 @@ async def compose_exam(state: ExamState) -> dict:
                 try: qs.append(m.model_validate(qd))
                 except: qs.append(qd)
             else: qs.append(qd)
+    if not qs:
+        return {"exam_paper": None, "error": "组卷后无有效题目"}
     paper = ExamPaper(id=str(uuid.uuid4())[:8],title=f"测验-{datetime.now().strftime('%m-%d %H:%M')}",questions=qs,question_count=len(qs),
         difficulty_summary=comp.get("difficulty_summary",{}),knowledge_coverage=comp.get("knowledge_points",[]))
     return {"exam_paper":paper.model_dump(mode="json")}

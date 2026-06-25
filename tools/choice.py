@@ -15,7 +15,7 @@ TOOL_CHOICE = {
                 "knowledge_point": {"type": "string"},
                 "explanation": {"type": "string", "description": "为什么选这个答案的解析"},
             },
-            "required": ["stem", "options", "correct_index", "difficulty"],
+            "required": ["stem", "options", "correct_index", "difficulty", "explanation"],
         },
     },
 }

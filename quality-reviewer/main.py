@@ -1,16 +1,18 @@
 """Agent ④ 质量审核 — 支持批量审核。"""
+import os, sys; sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from fastapi import FastAPI
 from llm import chat_structured
 from models import ReviewResult, Verdict, BatchReviewResponse
 
 SINGLE_SYSTEM = """快速审核题目质量。
-只要题目基本正确、无重大错误就判 pass。
-只有明确有知识错误、答案错误或完全无法理解时才判 reject。
-请返回 JSON：{"verdict": "pass/reject", "dimensions": {"correctness": 0.9, "unambiguity": 0.8, "relevance": 1.0}, "suggestions": ["改进建议"]}"""
+只要题目没有明显错误就判 pass，有小瑕疵或表述不够完美不影响通过。
+只有明确有知识错误、答案错误、题干完全看不懂才判 reject。
+不要因为"可以更好"就拒，通过率尽量高。
+请返回 JSON：{"verdict": "pass/reject", "dimensions": {"correctness": 0.9, "unambiguity": 0.8, "relevance": 1.0}, "suggestions": []}"""
 
-BATCH_SYSTEM = """批量审核以下题目。
-对每道题独立判断：基本正确就判 pass，有知识错误/答案错误才判 reject。
-返回 JSON 数组，顺序与输入一致：
+BATCH_SYSTEM = """批量审核题目。宽松审核，只有明确的知识错误才 reject。
+每道题独立判断，通过的尽量多。
+按输入顺序返回：
 {"reviews": [{"index": 0, "verdict": "pass", "justification": ""}, {"index": 1, "verdict": "reject", "justification": "答案错误"}]}"""
 
 app = FastAPI(title="Quality Reviewer")

@@ -15,7 +15,7 @@ TOOL_SHORT_ANSWER = {
                 "knowledge_point": {"type": "string"},
                 "explanation": {"type": "string"},
             },
-            "required": ["stem", "reference_answer", "difficulty"],
+            "required": ["stem", "reference_answer", "difficulty", "explanation"],
         },
     },
 }

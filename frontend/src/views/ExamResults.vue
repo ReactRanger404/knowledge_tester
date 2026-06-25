@@ -17,29 +17,14 @@
         </div>
       </div>
 
-      <!-- 错题分析 -->
-      <div v-if="analysis" class="card">
-        <h3 class="card-title">📋 错题分析</h3>
-        <p style="margin-bottom:1rem">{{ analysis.summary }}</p>
-
-        <div v-if="analysis.weak_concepts?.length" style="margin-bottom:1.5rem">
-          <h4 style="font-size:.9rem;margin-bottom:.5rem;color:var(--gray-700)">薄弱知识点</h4>
-          <div v-for="wc in analysis.weak_concepts" :key="wc.concept" class="weak-concept">
-            <span style="flex:0 0 120px;font-weight:500">{{ wc.concept }}</span>
-            <div class="weak-bar"><div :class="'weak-bar-fill '+masteryCls(wc.mastery_ratio)" :style="{width:(wc.mastery_ratio*100)+'%'}"></div></div>
-            <span style="flex:0 0 60px;font-size:.85rem;color:var(--gray-500)">{{ Math.round(wc.mastery_ratio*100) }}%</span>
+      <!-- 知识点讲解 -->
+      <div v-if="analysis?.knowledge_explanations?.length" class="card">
+        <h3 class="card-title">📖 知识点讲解</h3>
+        <div v-for="(ke, i) in analysis.knowledge_explanations" :key="i" style="padding:1rem 0;border-bottom:1px solid var(--gray-100)">
+          <div style="display:flex;justify-content:space-between;margin-bottom:.5rem">
+            <span style="font-weight:500">第{{ ke.question_index+1 }}题 · {{ ke.knowledge_point }}</span>
           </div>
-        </div>
-
-        <div v-if="analysis.error_patterns?.length">
-          <h4 style="font-size:.9rem;margin-bottom:.5rem;color:var(--gray-700)">错误模式</h4>
-          <div v-for="ep in analysis.error_patterns" :key="ep.pattern_name" style="padding:.5rem 0;border-bottom:1px solid var(--gray-100);display:flex;justify-content:space-between">
-            <span>• {{ ep.pattern_name }}</span><span style="color:var(--gray-500);font-size:.85rem">{{ ep.frequency }} 次</span>
-          </div>
-        </div>
-
-        <div v-if="analysis.suggestion" style="margin-top:1.5rem;padding:1rem;background:var(--gray-50);border-radius:8px;font-size:.9rem">
-          <strong>💡 学习建议：</strong> {{ analysis.suggestion }}
+          <div style="font-size:.9rem;line-height:1.6;color:var(--gray-700);white-space:pre-wrap">{{ ke.explanation }}</div>
         </div>
       </div>
 
@@ -86,5 +71,4 @@ const passed = computed(() => score.value>=60)
 
 function typeLabel(t) { return {choice:'选择题',judgment:'判断题',fill_blank:'填空题',short_answer:'简答题',essay:'论述题'}[t]||t }
 function typeTag(t) { return {choice:'tag-choice',judgment:'tag-judgment',fill_blank:'tag-fill',short_answer:'tag-short',essay:'tag-essay'}[t]||'' }
-function masteryCls(r) { return r>=0.7?'mastery-high':r>=0.4?'mastery-mid':'mastery-low' }
 </script>

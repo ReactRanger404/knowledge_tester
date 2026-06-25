@@ -1,4 +1,5 @@
 """Agent ⑥ 判题 — 规则+LLM 混合。"""
+import os, sys; sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from fastapi import FastAPI
 from llm import chat_structured
 from models import GradingResult

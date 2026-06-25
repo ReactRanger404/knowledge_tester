@@ -14,7 +14,7 @@ TOOL_FILL_BLANK = {
                 "knowledge_point": {"type": "string"},
                 "explanation": {"type": "string"},
             },
-            "required": ["stem", "answers", "difficulty"],
+            "required": ["stem", "answers", "difficulty", "explanation"],
         },
     },
 }

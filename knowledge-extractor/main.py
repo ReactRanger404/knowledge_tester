@@ -1,15 +1,20 @@
-"""Agent ① 知识点提取 — 完全自包含。"""
+"""Agent ① 知识点提取。"""
+import os, sys; sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from llm import chat_structured
 from models import KnowledgeExtractionResult
 
-SYSTEM = """你是一个专业的知识点提取专家。
-从资料中提取可出题的知识点原子，每个知识点对应一道题。
-标注重要度 0~1。
+SYSTEM = """你是知识点提取专家。从教材原文中提取适合出题的知识点原子。
+要求：
+- 每个知识点必须具体可考（如"TCP三次握手"可以，"网络协议概论"太宽泛不行）
+- 知识点之间不要重复，同义合并
+- 标注重要度 0~1（核心考点 0.8+，一般内容 0.5-0.7，边缘知识 0.3-）
+- 每个知识点给 2-3 个关键词
+- **只提取最重要的知识点，数量控制在 8-12 个**
 
-请严格返回以下 JSON 格式：
-{"knowledge_points": [{"concept": "知识点名", "importance": 0.8, "keywords": ["关键词"]}]}"""
+返回 JSON：
+{"knowledge_points": [{"concept": "TCP三次握手", "importance": 0.9, "keywords": ["SYN", "ACK", "连接建立"]}]}"""
 
 app = FastAPI(title="Knowledge Extractor")
 
