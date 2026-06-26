@@ -1,26 +1,29 @@
 <template>
   <div class="container">
     <div class="card">
-      <h2 class="card-title">📝 生成试卷</h2>
+      <h2 class="card-title">生成试卷</h2>
+      <p class="card-subtitle">选择教材和题型，系统将自动生成一份定制试卷</p>
 
       <div class="form-group">
         <label>选择教材</label>
-        <select v-model="selectedKb" @change="loadKb" style="width:100%;padding:.75rem;border:1px solid var(--gray-300);border-radius:8px;font-size:1rem;">
-          <option value="" disabled>-- 请选择教材 --</option>
+        <select v-model="selectedKb" @change="loadKb">
+          <option value="" disabled>— 请选择教材 —</option>
           <option v-for="e in kbList" :key="e.name" :value="e.name">{{ e.name }}（{{ e.char_count.toLocaleString() }} 字符）</option>
         </select>
-        <div v-if="selectedKb" style="font-size:.85rem;color:var(--green);margin-top:.25rem;">
-          ✅ 已加载「{{ selectedKb }}」— {{ source.length.toLocaleString() }} 字符
+        <div v-if="selectedKb" style="font-size:.8rem;color:var(--green);margin-top:.3rem;font-weight:500;">
+          已加载「{{ selectedKb }}」— {{ source.length.toLocaleString() }} 字符
         </div>
       </div>
 
       <div class="form-group">
         <label>题目类型</label>
-        <div class="checkbox-group">
-          <label v-for="t in allTypes" :key="t.value">
-            <input type="checkbox" :value="t.value" v-model="types">
+        <div class="type-grid">
+          <div v-for="t in allTypes" :key="t.value"
+            class="type-chip" :class="{active:types.includes(t.value)}"
+            @click="toggleType(t.value)">
+            <input type="checkbox" :checked="types.includes(t.value)">
             <span>{{ t.label }}</span>
-          </label>
+          </div>
         </div>
       </div>
 
@@ -31,18 +34,18 @@
         </div>
       </div>
 
-      <p v-if="err" style="color:var(--red)">{{ err }}</p>
+      <p v-if="err" class="err-msg">{{ err }}</p>
       <button class="btn btn-primary" @click="generate" :disabled="loading || !selectedKb || types.length===0">
         <span v-if="loading" class="spinner" style="width:16px;height:16px;"></span>
-        {{ loading ? '生成中…' : '🚀 生成试卷' }}
+        {{ loading ? '生成中…' : '生成试卷' }}
       </button>
     </div>
 
-    <div v-if="kbList.length" class="card" style="background:var(--gray-50);">
-      <h3 class="card-title">📚 教材列表</h3>
+    <div v-if="kbList.length" class="card" style="background:var(--bg);">
+      <h3 class="card-title">教材列表</h3>
       <div v-for="e in kbList" :key="e.name" class="kb-item">
-        <span>{{ e.name }}</span>
-        <span style="color:var(--gray-500);font-size:.85rem;">{{ e.char_count.toLocaleString() }} 字符 · {{ e.chunks }} 块</span>
+        <span class="name">{{ e.name }}</span>
+        <span class="meta">{{ e.char_count.toLocaleString() }} 字符 · {{ e.chunks }} 块</span>
       </div>
     </div>
   </div>
@@ -70,6 +73,12 @@ const allTypes = [
 ]
 
 onMounted(fetchKbList)
+
+function toggleType(val) {
+  const i = types.value.indexOf(val)
+  if (i >= 0) types.value.splice(i, 1)
+  else types.value.push(val)
+}
 
 async function fetchKbList() {
   try {
@@ -99,13 +108,3 @@ async function generate() {
   finally { loading.value = false }
 }
 </script>
-
-<style scoped>
-.kb-item {
-  padding: .5rem 0;
-  border-bottom: 1px solid var(--gray-200);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-</style>

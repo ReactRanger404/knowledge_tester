@@ -7,6 +7,7 @@ import aiohttp
 from langgraph.graph import StateGraph, END, START
 from orchestrator.models import ExamPaper, GradingReport, GradingResult, ErrorAnalysisReport
 from orchestrator.models import ChoiceQuestion, JudgmentQuestion, FillBlankQuestion, ShortAnswerQuestion, EssayQuestion
+from orchestrator.validators import validate_question
 from rag.vector_store import get_store
 
 AGENTS = {
@@ -48,28 +49,26 @@ async def extract_knowledge(state: ExamState) -> dict:
     return {"knowledge_points": kps}
 
 async def generate_questions(state: ExamState) -> dict:
-    """每个知识点出一道题，不够时轮询复用（换难度避免雷同）。"""
+    """每个知识点出一道题，不够时轮询复用。"""
     kps = state["knowledge_points"]
     types = state["config"].get("question_types", ["choice"])
     total = state["config"].get("total_count", 10)
     kb_name = state["config"].get("kb_name", "")
-    diffs = ["easy", "medium", "hard"]
 
     # 按重要度取前 needed 个 KP，不够就轮询
     needed = min(total, len(kps))
     if len(kps) > needed:
         kps = sorted(kps, key=lambda k: k.get("importance", 0), reverse=True)[:needed]
 
-    # 多生成一些，给审核留余量（保证各种题型都能通过审核）
+    # 多生成一些，给审核留余量
     gen_count = max(total, int(total * 1.8))
     pairs = []
     for i in range(gen_count):
         kp = kps[i % len(kps)]
         tt = types[i % len(types)]
-        dd = diffs[i % len(diffs)]
-        pairs.append((kp, tt, dd))
+        pairs.append((kp, tt))
 
-    async def _gen(kp, ttype, diff):
+    async def _gen(kp, ttype):
         t0 = __import__('time').time()
         context = ""
         if kb_name:
@@ -81,7 +80,7 @@ async def generate_questions(state: ExamState) -> dict:
                 pass
         r = await _call("qg", {"type": "generate_question", "payload": {
             "knowledge_point": kp.get("concept", ""), "context": context,
-            "importance": kp.get("importance", 0.5), "difficulty": diff,
+            "importance": kp.get("importance", 0.5),
             "target_type": ttype}})
         raw = r.get("payload", {}).get("raw_question", {})
         if not raw:
@@ -89,16 +88,36 @@ async def generate_questions(state: ExamState) -> dict:
         ta = await _call("ta", {"type": "adapt_type", "payload": {"raw_question": raw, "target_type": ttype}})
         fmt = ta.get("payload", {}).get("formatted_question", {})
         if fmt:
-            print(f"[计时] 「{kp.get('concept','')[:16]}」{diff}→{ttype}: {__import__('time').time()-t0:.0f}s")
+            valid, reason = validate_question(fmt)
+            if not valid:
+                print(f"[校验过滤] 「{kp.get('concept','')[:16]}」→{ttype}: {reason}")
+                return None
+            print(f"[计时] 「{kp.get('concept','')[:16]}」→{ttype}: {__import__('time').time()-t0:.0f}s")
         return fmt if fmt else None
 
     t0 = __import__('time').time()
-    results = await asyncio.gather(*[_gen(kp, t, d) for kp, t, d in pairs], return_exceptions=True)
+    results = await asyncio.gather(*[_gen(kp, t) for kp, t in pairs], return_exceptions=True)
     pending = [r for r in results if isinstance(r, dict) and r]
     print(f"[计时] 出题总耗时: {__import__('time').time()-t0:.0f}s, 共 {len(pending)} 道")
     return {"pending_review": pending}
 
 CHUNK_SIZE = 10
+MAX_REVISE_ROUNDS = 2  # 每道题最多修改重审次数
+
+async def _revise_question(qd: dict, justification: str) -> dict | None:
+    """带审核反馈去 QG 修改，TA 重新适配，返回新题或 None。"""
+    try:
+        orig = {"stem": qd.get("stem", ""), "knowledge_point": qd.get("knowledge_point", "")}
+        revised = await _call("qg", {"type": "revise_question", "payload": {
+            "original_question": orig, "suggestions": [justification]}})
+        raw = revised.get("payload", {}).get("raw_question", {})
+        if not raw:
+            return None
+        ta = await _call("ta", {"type": "adapt_type", "payload": {
+            "raw_question": raw, "target_type": qd.get("type", "choice")}})
+        return ta.get("payload", {}).get("formatted_question", None)
+    except Exception:
+        return None
 
 async def batch_review(state: ExamState) -> dict:
     pending = list(state.get("pending_review", []))
@@ -106,16 +125,47 @@ async def batch_review(state: ExamState) -> dict:
         return {"pending_review": []}
     pool = list(state["formatted_pool"])
     t0 = __import__('time').time()
+
     for chunk_start in range(0, len(pending), CHUNK_SIZE):
         chunk = pending[chunk_start:chunk_start + CHUNK_SIZE]
-        r = await _call("qr", {"type": "review_batch", "payload": {"questions": chunk}})
-        reviews = r.get("payload", {}).get("reviews", [])
-        passed = 0
-        for i, rv in enumerate(reviews):
-            if rv.get("verdict") == "pass" and i < len(chunk):
-                pool.append(chunk[i])
-                passed += 1
-        print(f"[计时] 批量审核: {len(chunk)} 题, 通过 {passed}, 耗时 {__import__('time').time()-t0:.0f}s")
+        # 每一道题都可以独立重试，用 dict 记录状态
+        items = [{"q": qd, "round": 0, "done": False} for qd in chunk]
+
+        while any(not it["done"] for it in items):
+            batch = [it["q"] for it in items if not it["done"]]
+            if not batch:
+                break
+            r = await _call("qr", {"type": "review_batch", "payload": {"questions": batch}})
+            reviews = r.get("payload", {}).get("reviews", [])
+            # 把 review 结果对应回 items
+            ri = 0
+            for it in items:
+                if it["done"]:
+                    continue
+                if ri >= len(reviews):
+                    it["done"] = True  # 没拿到 review 就放弃
+                    continue
+                rv = reviews[ri]
+                ri += 1
+                if rv.get("verdict") == "pass":
+                    pool.append(it["q"])
+                    it["done"] = True
+                elif it["round"] < MAX_REVISE_ROUNDS - 1:
+                    # 尝试修改
+                    justification = rv.get("justification", "质量不达标，请修改")
+                    new_q = await _revise_question(it["q"], justification)
+                    if new_q:
+                        it["q"] = new_q
+                        it["round"] += 1
+                        print(f"[审核反馈] 第{it['round']+1}轮修改: 「{it['q'].get('stem','')[:20]}」")
+                    else:
+                        it["done"] = True  # 修改失败，放弃
+                else:
+                    it["done"] = True  # 达到最大重试次数，放弃
+
+        passed_this_chunk = sum(1 for it in items if it["q"] in pool)
+        print(f"[计时] 批量审核: {len(chunk)} 题, 通过 {passed_this_chunk}, 耗时 {__import__('time').time()-t0:.0f}s")
+
     print(f"[计时] 审核总耗时: {__import__('time').time()-t0:.0f}s, 池中 {len(pool)} 题")
     return {"pending_review": [], "formatted_pool": pool}
 

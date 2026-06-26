@@ -1,50 +1,56 @@
 <template>
-  <div class="container">
+  <div class="container container-wide">
     <div v-if="!result" class="empty-state">
       <div class="icon">📊</div>
       <h3>还没有答题结果</h3>
+      <p>完成答题后才能查看</p>
       <router-link :to="'/exam/'+id" class="btn btn-primary">去答题</router-link>
     </div>
 
     <template v-else>
-      <div class="card result-header">
+      <div class="result-hero">
         <h2>{{ paper?.title||'答题结果' }}</h2>
-        <div :class="'score-circle '+(passed?'pass':'fail')">{{ score }}<span style="font-size:1rem;">分</span></div>
+        <p class="sub">{{ report.correct_count }}/{{ report.total_questions }} 题正确</p>
+        <div :class="'score-ring '+(passed?'pass':'fail')">
+          <span class="num">{{ score }}</span>
+          <span class="unit">分</span>
+        </div>
         <div class="stat-row">
-          <div class="stat-card"><div class="num" style="color:var(--green)">{{ report.correct_count }}</div><div class="label">正确</div></div>
-          <div class="stat-card"><div class="num" style="color:var(--red)">{{ report.total_questions - report.correct_count }}</div><div class="label">错误</div></div>
-          <div class="stat-card"><div class="num">{{ report.total_questions }}</div><div class="label">总题</div></div>
+          <span class="stat-pill green">✓ 正确 {{ report.correct_count }}</span>
+          <span class="stat-pill red">✗ 错误 {{ report.total_questions - report.correct_count }}</span>
+          <span class="stat-pill gray">📄 共 {{ report.total_questions }} 题</span>
         </div>
       </div>
 
-      <!-- 知识点讲解 -->
       <div v-if="analysis?.knowledge_explanations?.length" class="card">
-        <h3 class="card-title">📖 知识点讲解</h3>
-        <div v-for="(ke, i) in analysis.knowledge_explanations" :key="i" style="padding:1rem 0;border-bottom:1px solid var(--gray-100)">
-          <div style="display:flex;justify-content:space-between;margin-bottom:.5rem">
-            <span style="font-weight:500">第{{ ke.question_index+1 }}题 · {{ ke.knowledge_point }}</span>
-          </div>
-          <div style="font-size:.9rem;line-height:1.6;color:var(--gray-700);white-space:pre-wrap">{{ ke.explanation }}</div>
+        <h3 class="card-title">知识点讲解</h3>
+        <div v-for="(ke, i) in analysis.knowledge_explanations" :key="i" class="explanation-item">
+          <div class="title">第 {{ ke.question_index+1 }} 题 · {{ ke.knowledge_point }}</div>
+          <div class="body">{{ ke.explanation }}</div>
         </div>
       </div>
 
-      <!-- 逐题回顾 -->
       <div class="card">
-        <h3 class="card-title">📖 逐题回顾</h3>
-        <div v-for="(q,i) in paper?.questions||[]" :key="i" :class="'review-item '+(report.results[i]?.is_correct?'correct':'wrong')">
-          <div style="display:flex;justify-content:space-between;margin-bottom:.5rem">
-            <span style="font-weight:500">第{{ i+1 }}题 · <span :class="'tag '+typeTag(q.type)">{{ typeLabel(q.type) }}</span></span>
-            <span class="status-tag">{{ report.results[i]?.is_correct?'✓ 正确':'✗ 错误' }}</span>
+        <h3 class="card-title">逐题回顾</h3>
+        <div v-for="(q,i) in paper?.questions||[]" :key="i"
+          :class="'review-item '+(report.results[i]?.is_correct?'correct':'wrong')">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.35rem;flex-wrap:wrap;gap:.3rem;">
+            <span style="font-weight:600;font-size:.9rem;">
+              第 {{ i+1 }} 题 · <span :class="'tag '+typeTag(q.type)">{{ typeLabel(q.type) }}</span>
+            </span>
+            <span class="status-tag">
+              {{ report.results[i]?.is_correct ? '✓ 正确' : '✗ 错误' }}
+            </span>
           </div>
-          <div style="margin-bottom:.25rem">{{ q.stem }}</div>
-          <div v-if="report.results[i]?.feedback" style="font-size:.85rem;color:var(--gray-700);margin-top:.25rem">
+          <div style="font-size:.9rem;line-height:1.7;">{{ q.stem }}</div>
+          <div v-if="report.results[i]?.feedback" class="feedback">
             <strong>反馈：</strong>{{ report.results[i].feedback }}
           </div>
         </div>
       </div>
 
-      <div style="text-align:center;padding:0 0 2rem">
-        <router-link to="/generate" class="btn btn-primary">📝 再出一套</router-link>
+      <div style="text-align:center;padding:0 0 3rem;">
+        <router-link to="/generate" class="btn btn-primary">再出一套</router-link>
       </div>
     </template>
   </div>
